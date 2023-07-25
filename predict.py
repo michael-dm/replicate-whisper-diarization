@@ -30,7 +30,7 @@ class Predictor(BasePredictor):
 
     def setup(self):
         """Load the model into memory to make running multiple predictions efficient"""
-        model_name = "large-v2"
+        model_name = "bofenghuang/whisper-large-v2-cv11-french-ct2"
         self.model = WhisperModel(model_name, device="cuda", compute_type="float16")
         self.embedding_model = PretrainedSpeakerEmbedding(
             "speechbrain/spkrec-ecapa-voxceleb",
