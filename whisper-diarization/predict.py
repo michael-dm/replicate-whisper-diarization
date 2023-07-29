@@ -146,9 +146,7 @@ class Predictor(BasePredictor):
         else:
             params=dict(
                 beam_size=1,
-                best_of=2,
-                temperature=0,
-                suppress_tokens=None
+                best_of=5
             )
         segments, info = self.model.transcribe(
             audio_file_wav,
