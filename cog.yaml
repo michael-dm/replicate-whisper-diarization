@@ -19,7 +19,7 @@ build:
      - "numba==0.57.1"
      - "torch==2.0.1"
      - "torchvision==0.15.2"
-     - "pyannote-audio==git+github.com:pyannote/pyannote-audio.git#bc0920f"
+     - "pyannote-audio==git+https://github.com/pyannote/pyannote-audio.git@bc0920fc4e2007a9fa331bf2ea9c8c4ddf6f42d1"
      - "faster-whisper==0.7.1"
      - "python-magic==0.4.27"
 
