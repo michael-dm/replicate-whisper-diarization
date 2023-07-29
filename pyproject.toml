@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "whisper-diarization"
+version = "0.1.0"
+description = ""
+authors = ["Michaël DM <contact@micode.fr>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+cog = "^0.8.3"
+pandas = "^2.0.3"
+numba = "^0.57.1"
+torch = "^2.0.1"
+pyannote-audio = { git = "https://github.com/pyannote/pyannote-audio.git", branch = "develop" }
+torchvision = "^0.15.2"
+faster-whisper = "^0.7.1"
+python-magic = "^0.4.27"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,2 +1,9 @@
 .cog
 .vscode
+.DS_Store
+__pycache__
+.venv
+.env
+*.mp3
+*.m4a
+*.wav

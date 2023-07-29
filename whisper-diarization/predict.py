@@ -21,7 +21,6 @@ import mimetypes
 import magic
 
 
-
 class ModelOutput(BaseModel):
     segments: Any
 
@@ -31,11 +30,19 @@ class Predictor(BasePredictor):
     def setup(self):
         """Load the model into memory to make running multiple predictions efficient"""
         model_name = "bofenghuang/whisper-large-v2-cv11-french-ct2"
-        self.model = WhisperModel(model_name, device="cuda", compute_type="float16")
+        
+        if torch.cuda.is_available():
+            self.model = WhisperModel(model_name, device="cuda", compute_type="float16")
+        else:
+            self.model = WhisperModel(model_name, device="cpu", compute_type="int8")
+
+        device = "cuda" if torch.cuda.is_available() else (
+            "mps" if torch.backends.mps.is_available() else "cpu"
+        )
         self.embedding_model = PretrainedSpeakerEmbedding(
             "speechbrain/spkrec-ecapa-voxceleb",
-            device=torch.device(
-                "cuda" if torch.cuda.is_available() else "cpu"))
+            device
+        )
 
     def predict(
         self,
@@ -105,7 +112,7 @@ class Predictor(BasePredictor):
         return ModelOutput(segments=segments)
 
     def convert_time(self, secs, offset_seconds=0):
-        return datetime.timedelta(seconds=(round(secs) + offset_seconds))
+        return datetime.timedelta(seconds=(secs) + offset_seconds)
 
     def speech_to_text(self, filepath, num_speakers=2, prompt="People takling.", offset_seconds=0, group_segments=True):
         # model = whisper.load_model('large-v2')
@@ -134,14 +141,21 @@ class Predictor(BasePredictor):
 
         # Transcribe audio
         print("starting whisper")
-        options = dict(beam_size=5, best_of=5)
-        transcribe_options = dict(task="transcribe", **options)
-        segments, _ = self.model.transcribe(audio_file_wav,
-                                       **transcribe_options,
-                                       initial_prompt=prompt)
+        segments, info = self.model.transcribe(
+            audio_file_wav,
+            initial_prompt=prompt,
+            word_timestamps=True,
+            vad_filter=True,
+            vad_parameters=dict(window_size_samples=1536)
+        )
+        
+        print("Detected language '%s' with probability %f" % (info.language, info.language_probability))
+        
         segments = list(segments)
+        segments = [{'start': s.start, 'end': s.end, 'text': s.text} for s in segments]
+        print(segments)
         print("done with whisper")
-        segments = [{'start': int(s.start), 'end': int(s.end), 'text': s.text} for s in segments]
+
         try:
             # Create embedding
             def segment_embedding(segment):
@@ -171,8 +185,8 @@ class Predictor(BasePredictor):
 
             # Initialize the first group with the first segment
             current_group = {
-                'start': str(round(segments[0]["start"] + offset_seconds)),
-                'end': str(round(segments[0]["end"] + offset_seconds)),
+                'start': str(segments[0]["start"] + offset_seconds),
+                'end': str(segments[0]["end"] + offset_seconds),
                 'speaker': segments[0]["speaker"],
                 'text': segments[0]["text"]
             }
@@ -185,7 +199,7 @@ class Predictor(BasePredictor):
                 if segments[i]["speaker"] == segments[
                         i - 1]["speaker"] and time_gap <= 2 and group_segments:
                     current_group["end"] = str(
-                        round(segments[i]["end"] + offset_seconds))
+                        segments[i]["end"] + offset_seconds)
                     current_group["text"] += " " + segments[i]["text"]
                 else:
                     # Add the current_group to the output list
@@ -194,8 +208,8 @@ class Predictor(BasePredictor):
                     # Start a new group with the current segment
                     current_group = {
                         'start':
-                        str(round(segments[i]["start"] + offset_seconds)),
-                        'end': str(round(segments[i]["end"] + offset_seconds)),
+                        str(segments[i]["start"] + offset_seconds),
+                        'end': str(segments[i]["end"] + offset_seconds),
                         'speaker': segments[i]["speaker"],
                         'text': segments[i]["text"]
                     }
