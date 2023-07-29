@@ -10,7 +10,7 @@ predictor.setup()
 
 print("Predicting...")
 result = predictor.speech_to_text(
-    filepath=os.path.join(dir_path, 'test 2.mp3'),
+    filepath=os.path.join(dir_path, 'test.mp3'),
     num_speakers=3,
     prompt='Une conversation entre plusieurs personnes.',
     group_segments=True

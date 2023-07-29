@@ -34,7 +34,7 @@ class Predictor(BasePredictor):
         if torch.cuda.is_available():
             self.model = WhisperModel(model_name, device="cuda", compute_type="float16")
         else:
-            self.model = WhisperModel(model_name, device="cpu", compute_type="int8")
+            self.model = WhisperModel(model_name, device="cpu", compute_type="int8", cpu_threads=6)
 
         device = "cuda" if torch.cuda.is_available() else (
             "mps" if torch.backends.mps.is_available() else "cpu"
@@ -141,12 +141,20 @@ class Predictor(BasePredictor):
 
         # Transcribe audio
         print("starting whisper")
+        if torch.cuda.is_available():
+            params=dict()
+        else:
+            params=dict(
+                best_of=2,
+                temperature=0
+            )
         segments, info = self.model.transcribe(
             audio_file_wav,
             initial_prompt=prompt,
             word_timestamps=True,
             vad_filter=True,
-            vad_parameters=dict(window_size_samples=1536)
+            vad_parameters=dict(window_size_samples=1536),
+            **params
         )
         
         print("Detected language '%s' with probability %f" % (info.language, info.language_probability))
