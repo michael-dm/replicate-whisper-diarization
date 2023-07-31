@@ -56,7 +56,7 @@ class Predictor(BasePredictor):
                                   le=50,
                                   default=2),
         prompt: str = Input(description="Prompt, to be used as context",
-                            default="Some people speaking."),
+                            default=""),
         offset_seconds: int = Input(
             description="Offset in seconds, used for chunked inputs",
             default=0,
@@ -114,7 +114,7 @@ class Predictor(BasePredictor):
     def convert_time(self, secs, offset_seconds=0):
         return datetime.timedelta(seconds=(secs) + offset_seconds)
 
-    def speech_to_text(self, filepath, num_speakers=2, prompt="People takling.", offset_seconds=0, group_segments=True):
+    def speech_to_text(self, filepath, num_speakers=2, prompt="", offset_seconds=0, group_segments=True):
         # model = whisper.load_model('large-v2')
         time_start = time.time()
 
@@ -145,10 +145,10 @@ class Predictor(BasePredictor):
             params=dict()
         else:
             params=dict(
-                beam_size=1,
+                beam_size=2,
                 best_of=5
             )
-        segments, info = self.model.transcribe(
+        raw_segments, info = self.model.transcribe(
             audio_file_wav,
             initial_prompt=prompt,
             word_timestamps=True,
@@ -158,10 +158,19 @@ class Predictor(BasePredictor):
         )
         
         print("Detected language '%s' with probability %f" % (info.language, info.language_probability))
+        segments = []
+
+        for s in raw_segments:
+            if s.no_speech_prob > 0.75:
+                continue
+            segments.append(s)
+
+        segments = [{
+            'start': s.start,
+            'end': s.end,
+            'text': s.text
+        } for s in segments]
         
-        segments = list(segments)
-        segments = [{'start': s.start, 'end': s.end, 'text': s.text} for s in segments]
-        print(segments)
         print("done with whisper")
 
         try:
